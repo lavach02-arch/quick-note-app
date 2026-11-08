@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quick Note Application | Full-Stack CRUD</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f59e0b' stroke-width='2'><path d='M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z'/><path d='M15 3v5h5'/></svg>" />
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="bg-slate-100/70 text-slate-800 min-h-screen flex flex-col selection:bg-amber-400 selection:text-slate-900">
+
+  <!-- Top Sticky Navigation Bar -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+      <!-- Brand -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-md shadow-amber-500/20">
+          <i data-lucide="notebook-pen" class="w-5 h-5 stroke-[2.5]"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-lg text-slate-900 tracking-tight">
+              Quick<span class="text-amber-600">Note</span>
+            </span>
+            <span class="px-2 py-0.5 text-[11px] font-bold rounded-full bg-amber-50 text-amber-700 border border-amber-200 hidden sm:inline-flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+              Full-Stack CRUD
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 hidden sm:block">
+            RESTful API with asynchronous <code class="font-mono text-amber-700 font-semibold">fetch()</code> architecture
+          </p>
+        </div>
+      </div>
+
+      <!-- Telemetry Stats & Actions -->
+      <div class="flex items-center gap-3">
+        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 text-xs font-semibold text-slate-600 border border-slate-200">
+          <span>Notes:</span>
+          <span id="stat-total" class="font-mono text-amber-600 font-bold bg-amber-100/80 px-1.5 rounded">0</span>
+          <span class="text-slate-300">|</span>
+          <span>Pinned:</span>
+          <span id="stat-pinned" class="font-mono text-purple-600 font-bold bg-purple-100/80 px-1.5 rounded">0</span>
+        </div>
+
+        <button id="btn-refresh" title="Reload notes from backend" class="p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-1.5 transition-colors border border-slate-200">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline">Refresh</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex-1 w-full space-y-6">
+
+    <!-- Note Creation Box -->
+    <section class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-sm transition-all hover:shadow-md">
+      <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+        <div class="flex items-center gap-2">
+          <i data-lucide="plus-circle" class="w-5 h-5 text-amber-500"></i>
+          <h2 class="font-extrabold text-base text-slate-900 tracking-tight">Create a New Note</h2>
+        </div>
+        <span class="text-xs text-slate-400 font-mono">POST /api/notes</span>
+      </div>
+
+      <form id="create-note-form" class="space-y-4">
+        <!-- Title Input -->
+        <div>
+          <input
+            type="text"
+            id="input-title"
+            placeholder="Note title (e.g. Design meeting highlights)..."
+            maxlength="120"
+            required
+            class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-900 font-bold text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400 transition-all"
+          />
+        </div>
+
+        <!-- Content Textarea -->
+        <div>
+          <textarea
+            id="input-content"
+            rows="3"
+            placeholder="Take a note... write markdown, bullet points, or thoughts..."
+            required
+            class="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-800 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400 transition-all resize-y min-h-[90px]"
+          ></textarea>
+        </div>
+
+        <!-- Meta Controls (Category, Color, Tags, Pin) -->
+        <div class="flex flex-wrap items-center justify-between gap-4 pt-2">
+          <div class="flex flex-wrap items-center gap-3">
+            <!-- Category Selector -->
+            <div class="flex items-center gap-1.5 text-xs text-slate-600">
+              <i data-lucide="tag" class="w-3.5 h-3.5 text-slate-400"></i>
+              <select id="select-category" class="bg-slate-100 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer">
+                <option value="General">General</option>
+                <option value="Work">Work</option>
+                <option value="Personal">Personal</option>
+                <option value="Ideas">Ideas</option>
+                <option value="Study">Study</option>
+                <option value="Urgent">Urgent</option>
+              </select>
+            </div>
+
+            <!-- Color Palette Swatches -->
+            <div class="flex items-center gap-1.5 text-xs text-slate-600">
+              <span class="text-slate-400">Color:</span>
+              <div id="color-picker" class="flex items-center gap-1.5">
+                <button type="button" data-color="yellow" title="Yellow" class="color-swatch active w-5 h-5 rounded-full bg-amber-200 ring-2 ring-amber-400 transition-all"></button>
+                <button type="button" data-color="blue" title="Blue" class="color-swatch w-5 h-5 rounded-full bg-blue-200 transition-all hover:scale-110"></button>
+                <button type="button" data-color="green" title="Green" class="color-swatch w-5 h-5 rounded-full bg-emerald-200 transition-all hover:scale-110"></button>
+                <button type="button" data-color="purple" title="Purple" class="color-swatch w-5 h-5 rounded-full bg-purple-200 transition-all hover:scale-110"></button>
+                <button type="button" data-color="rose" title="Rose" class="color-swatch w-5 h-5 rounded-full bg-rose-200 transition-all hover:scale-110"></button>
+                <button type="button" data-color="slate" title="Slate" class="color-swatch w-5 h-5 rounded-full bg-slate-300 transition-all hover:scale-110"></button>
+              </div>
+            </div>
+
+            <!-- Tags Input -->
+            <div class="flex items-center gap-1.5 text-xs text-slate-600">
+              <input
+                type="text"
+                id="input-tags"
+                placeholder="Tags (comma separated)..."
+                class="px-2.5 py-1 rounded-lg border border-slate-200 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500 w-36 sm:w-44"
+              />
+            </div>
+
+            <!-- Pin to Top Checkbox -->
+            <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-700 cursor-pointer select-none">
+              <input type="checkbox" id="check-pinned" class="rounded text-amber-500 focus:ring-amber-400 w-4 h-4 cursor-pointer" />
+              <span>Pin to top</span>
+            </label>
+          </div>
+
+          <!-- Submit Button -->
+          <button
+            type="submit"
+            id="btn-submit-note"
+            class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+          >
+            <i data-lucide="check" class="w-4 h-4 stroke-[3]"></i>
+            <span>Save Note</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Search & Filter Controls -->
+    <section class="space-y-3">
+      <!-- Search Bar -->
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+          <i data-lucide="search" class="w-4 h-4"></i>
+        </div>
+        <input
+          type="text"
+          id="search-input"
+          placeholder="Search notes by title, content, or #tags..."
+          class="w-full pl-10 pr-10 py-3 rounded-2xl bg-white border border-slate-200/90 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400 shadow-xs transition-all"
+        />
+        <button id="search-clear-btn" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 hidden">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Category Filter Pills -->
+      <div class="flex items-center justify-between flex-wrap gap-2 pt-1">
+        <div id="category-pills" class="flex flex-wrap items-center gap-1.5">
+          <!-- Populated by JavaScript -->
+        </div>
+
+        <div class="flex items-center gap-2 text-xs text-slate-500">
+          <label class="flex items-center gap-1 cursor-pointer">
+            <input type="checkbox" id="filter-pinned-only" class="rounded text-amber-500 focus:ring-amber-400 w-3.5 h-3.5" />
+            <span>Pinned only</span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pinned Notes Section -->
+    <section id="pinned-section" class="space-y-3 hidden">
+      <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-800">
+        <i data-lucide="pin" class="w-3.5 h-3.5 fill-current"></i>
+        <span>Pinned Notes</span>
+        <span id="pinned-count-badge" class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-mono text-[10px]">0</span>
+      </div>
+      <div id="pinned-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Rendered by JavaScript -->
+      </div>
+    </section>
+
+    <!-- Other / All Notes Section -->
+    <section class="space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+          <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+          <span id="all-notes-heading">All Notes</span>
+          <span id="notes-count-badge" class="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-mono text-[10px]">0</span>
+        </div>
+      </div>
+
+      <!-- Notes Grid -->
+      <div id="notes-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Rendered by JavaScript -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="hidden bg-white rounded-3xl p-12 text-center border border-slate-200/80 shadow-xs max-w-md mx-auto my-8 space-y-3">
+        <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200">
+          <i data-lucide="notebook" class="w-7 h-7"></i>
+        </div>
+        <h3 class="font-extrabold text-base text-slate-900">No Notes Found</h3>
+        <p class="text-xs text-slate-500 leading-relaxed">
+          No notes match your current search or category filter. Try clearing filters or create a new note above!
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Edit Note Modal -->
+  <div id="edit-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm hidden animate-in fade-in duration-150">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2">
+          <i data-lucide="pencil" class="w-4 h-4 text-amber-500"></i>
+          <h3 class="font-extrabold text-base text-slate-900">Edit Note</h3>
+        </div>
+        <button id="modal-close-btn" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="edit-note-form" class="space-y-4">
+        <input type="hidden" id="edit-note-id" />
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Title</label>
+          <input
+            type="text"
+            id="edit-title"
+            required
+            class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Content</label>
+          <textarea
+            id="edit-content"
+            rows="5"
+            required
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-y"
+          ></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Category</label>
+            <select id="edit-category" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none">
+              <option value="General">General</option>
+              <option value="Work">Work</option>
+              <option value="Personal">Personal</option>
+              <option value="Ideas">Ideas</option>
+              <option value="Study">Study</option>
+              <option value="Urgent">Urgent</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Color Palette</label>
+            <select id="edit-color" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none">
+              <option value="yellow">Yellow</option>
+              <option value="blue">Blue</option>
+              <option value="green">Green</option>
+              <option value="purple">Purple</option>
+              <option value="rose">Rose</option>
+              <option value="slate">Slate</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+          <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+            <input type="checkbox" id="edit-pinned" class="rounded text-amber-500 w-4 h-4 cursor-pointer" />
+            <span>Pin this note to top</span>
+          </label>
+
+          <div class="flex items-center gap-2">
+            <button type="button" id="edit-cancel-btn" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors">
+              Cancel
+            </button>
+            <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-md shadow-amber-500/20 transition-all">
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-12">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>© 2026 Quick Note Application · Built for Workora Evaluation</p>
+      <div class="flex items-center gap-3 font-mono text-[11px] text-slate-400">
+        <span>Node.js / Express</span>
+        <span>•</span>
+        <span>Vanilla JS Fetch API</span>
+        <span>•</span>
+        <span>JSON Persistence</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Main JavaScript Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>

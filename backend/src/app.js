@@ -4,6 +4,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import noteRoutes from './routes/noteRoutes.js';
 
+import fs from 'fs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -21,8 +23,10 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve frontend static files if available
-const frontendPublicDir = path.resolve(__dirname, '../../frontend/public');
+// Serve frontend static files (supports root public or frontend/public)
+const rootPublic = path.resolve(__dirname, '../../public');
+const fallbackPublic = path.resolve(__dirname, '../../frontend/public');
+const frontendPublicDir = fs.existsSync(rootPublic) ? rootPublic : fallbackPublic;
 app.use(express.static(frontendPublicDir));
 
 // Healthcheck & API Info
